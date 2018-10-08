@@ -15,14 +15,14 @@ function Chip:draw(x, y)
     if self.open then
         love.graphics.draw(chipOpenImg, x, y)
         if self.monsterType and not self.showNumber then
-            self.monsterType:draw(math.floor((CHIPSIZE-16)/2)+x, math.floor((CHIPSIZE-16)/2)+y)
+            self.monsterType:draw(math.floor((CHIPSIZE-16)/2)+x+1, math.floor((CHIPSIZE-16)/2)+y)
         end
 
         if (not self.monsterType and self.near > 0) or (self.showNumber) then
             if self.showNumber then
                 love.graphics.setColor(1, 0, 0)
             end
-            switchPrint(self.near, x+13-#tostring(self.near)*3, y+math.floor(CHIPSIZE/2)-3)
+            switchPrintBig(self.near, x+13-#tostring(self.near)*5, y+math.floor(CHIPSIZE/2)-7)
             love.graphics.setColor(1, 1, 1)
         end
     else
@@ -30,7 +30,7 @@ function Chip:draw(x, y)
 
         if self.mark > 0 then
             love.graphics.setColor(0, 1, 0)
-            switchPrint(self.mark, x+13-#tostring(self.mark)*3, y+math.floor(CHIPSIZE/2)-3)
+            switchPrintBig(self.mark, x+13-#tostring(self.mark)*5, y+math.floor(CHIPSIZE/2)-7)
             love.graphics.setColor(1, 1, 1)
         end
     end

@@ -32,6 +32,14 @@ function love.load()
         fontQuads[string.sub(glyphs, i, i)] = love.graphics.newQuad((i-1)*6+1, 0, 5, 7, 241, 7)
     end
 
+    fontBigImg = love.graphics.newImage("img/fontbig.png")
+    fontBigQuads = {}
+
+    local glyphs = "0123456789"
+    for i = 1, #glyphs do
+        fontBigQuads[string.sub(glyphs, i, i)] = love.graphics.newQuad((i-1)*10+1, 0, 9, 15, 101, 15)
+    end
+
     game = Game:new(presets[3])
 end
 
@@ -41,6 +49,15 @@ function switchPrint(s, x, y, scale)
     for i = 1, #tostring(s) do
         love.graphics.draw(fontImg, fontQuads[string.sub(s, i, i)], x+xAdd, y, 0, scale, scale)
         xAdd = xAdd + 6*scale
+    end
+end
+
+function switchPrintBig(s, x, y, scale)
+    scale = scale or 1
+    local xAdd = 0
+    for i = 1, #tostring(s) do
+        love.graphics.draw(fontBigImg, fontBigQuads[string.sub(s, i, i)], x+xAdd, y, 0, scale, scale)
+        xAdd = xAdd + 10*scale
     end
 end
 

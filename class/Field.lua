@@ -424,10 +424,10 @@ function Field:gamepadpressed(joy, button)
         self:up()
         self.keyRepeats.up:down()
 
-    elseif button == "l" then
+    elseif button == "l" or button == "zl" then
         self:markDown()
         self.keyRepeats.markDown:down()
-    elseif button == "r" then
+    elseif button == "r" or button == "zr" then
         self:markUp()
         self.keyRepeats.markUp:down()
 
@@ -447,9 +447,9 @@ function Field:gamepadreleased(joy, button)
     elseif button == "dpup" then
         self.keyRepeats.up:up()
 
-    elseif button == "l" then
+    elseif button == "l" or button == "zl" then
         self.keyRepeats.markDown:up()
-    elseif button == "r" then
+    elseif button == "r" or button == "zr" then
         self.keyRepeats.markUp:up()
 
     elseif button == "a" then
