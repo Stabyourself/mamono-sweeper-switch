@@ -1,0 +1,85 @@
+return {
+    {
+        name = "Mamono Sweeper on EASY",
+        mapWidth = 16,
+        mapHeight = 16,
+        life = 10,
+        level = 1,
+        exp = 0,
+        expArray = {7, 20, 50, 82},
+        type = "battle",
+        monsters = {10, 8, 6, 4, 2},
+    },
+
+    {
+        name = "Mamono Sweeper on Normal",
+        mapWidth = 30,
+        mapHeight = 16,
+        life = 10,
+        level = 1,
+        exp = 0,
+        expArray = {10, 50, 167, 271},
+        type = "battle",
+        monsters = {33, 27, 20, 13, 6},
+    },
+
+    {
+        name = "Mamono Sweeper on HUGE",
+        mapWidth = 50,
+        mapHeight = 25,
+        life = 30,
+        level = 1,
+        exp = 0,
+        expArray = {10,90,202,400,1072,1840,2992,4656},
+        type = "battle",
+        monsters = {52, 46, 40, 36, 30, 24, 18, 13, 1},
+    },
+
+    {
+        name = "Mamono Sweeper on EXTREME",
+        mapWidth = 30,
+        mapHeight = 16,
+        life = 10,
+        level = 1,
+        exp = 0,
+        expArray = {10,50,175,375},
+        type = "battle",
+        monsters = {25, 25, 25, 25, 25},
+    },
+
+    {
+        name = "Mamono Sweeper on BLIND",
+        mapWidth = 30,
+        mapHeight = 16,
+        life = 1,
+        level = 0,
+        exp = 0,
+        expArray = {9999, 9999, 9999, 9999},
+        type = "search",
+        monsters = {33, 27, 20, 13, 6},
+    },
+
+    {
+        name = "Mamono Sweeper HUGE x EXTREME",
+        mapWidth = 50,
+        mapHeight = 25,
+        life = 10,
+        level = 1,
+        exp = 0,
+        expArray = {3, 10, 150, 540, 1116, 2268, 4572, 9180},
+        type = "battle",
+        monsters = {36, 36, 36, 36, 36, 36, 36, 36, 36},
+    },
+
+    {
+        name = "Mamono Sweeper HUGE x BLIND",
+        mapWidth = 50,
+        mapHeight = 25,
+        life = 1,
+        level = 0,
+        exp = 0,
+        expArray = {9999,90,202,400,1072,1840,2992,4656},
+        type = "search",
+        monsters = {52, 46, 40, 36, 30, 24, 18, 13, 1},
+    }
+}
