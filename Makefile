@@ -45,11 +45,11 @@ BUILD           := $(TOPDIR)
 
 ROMFS           := .
 
-APP_TITLE       := Löve Potion
-APP_AUTHOR      := TurtleP
+APP_TITLE       := Mamono Sweeper
+APP_AUTHOR      := Maurice
 APP_TITLEID     := 1043
-APP_VERSION     := 1.0
-APP_DESCRIPTION := LOVE for Switch
+APP_VERSION     := 0.1
+APP_DESCRIPTION := Mamono Sweeper port for Switch
 
 ICON            := icon.jpg
 

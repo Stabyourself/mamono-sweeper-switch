@@ -1,7 +1,11 @@
 local Field = class("Field")
 
+local KeyRepeat = require("class.KeyRepeat")
+local BouncyThing = require("class.BouncyThing")
 local Chip = require("class.Chip")
 local MonsterType = require("class.MonsterType")
+
+local cursorColor = {0.05, 0.7, 0.8}
 
 function Field:initialize(settings, monsterImg, monsterQuad)
     self.settings = settings
@@ -10,11 +14,32 @@ function Field:initialize(settings, monsterImg, monsterQuad)
 
     self.w = self.settings.mapWidth
     self.h = self.settings.mapHeight
-    self.x = math.floor((love.graphics.getWidth()-(self.w*CHIPSIZE))/2)
-    self.y = math.floor((love.graphics.getHeight()-(self.h*CHIPSIZE))/2)
 
     self.cursorX = math.ceil(self.w/2)
     self.cursorY = math.ceil(self.h/2)
+
+    self.cursorTimer = 0
+    self.cursorVisible = true
+
+    -- key repeats
+    local delay = 0.3
+    local interval = 0.05
+
+    self.keyRepeats = {
+        left = KeyRepeat:new(delay, interval, function() self:left() end),
+        right = KeyRepeat:new(delay, interval, function() self:right() end),
+        down = KeyRepeat:new(delay, interval, function() self:down() end),
+        up = KeyRepeat:new(delay, interval, function() self:up() end),
+        markDown = KeyRepeat:new(0.3, 0.1, function() self:markDown() end),
+        markUp = KeyRepeat:new(0.3, 0.1, function() self:markUp() end),
+        mark = KeyRepeat:new(math.huge, 1, function() end)
+    }
+
+    self.monsterCounts = {}
+
+    for i = 1, #self.settings.monsters do
+        self.monsterCounts[i] = (self.monsterCounts[i] or 0) + self.settings.monsters[i]
+    end
 
     self:makeMonsterTypes()
     self:makeChips()
@@ -22,20 +47,43 @@ end
 
 
 function Field:update(dt)
-
-end
-
-function Field:draw()
-    for x = 1, self.w do
-        for y = 1, self.h do
-            self.map[x][y]:draw(self.x+(x-1)*CHIPSIZE, self.y+(y-1)*CHIPSIZE)
-        end
+    for _, v in pairs(self.keyRepeats) do
+        v:update(dt)
     end
 
-    if true then
-        love.graphics.setColor(0.05, 0.7, 0.8)
-        love.graphics.rectangle("line", self.x+(self.cursorX-1)*CHIPSIZE, self.y+(self.cursorY-1)*CHIPSIZE, CHIPSIZE, CHIPSIZE)
-        love.graphics.setColor(1, 1, 1)
+    self.cursorTimer = self.cursorTimer + dt*5
+
+    if game.won then
+        for _, v in ipairs(self.bouncyThings) do
+            v:update(dt)
+        end
+    end
+end
+
+function Field:draw(x, y)
+    if not game.won then -- regular field
+        for cx = 1, self.w do
+            for cy = 1, self.h do
+                self.map[cx][cy]:draw(x+(cx-1)*CHIPSIZE, y+(cy-1)*CHIPSIZE)
+            end
+        end
+
+        if self.cursorVisible then
+            local colors = {}
+            local mul = (math.sin(self.cursorTimer)+1)/2
+
+            for i = 1, 3 do
+                colors[i] = cursorColor[i] + (1-cursorColor[i])*mul
+            end
+
+            love.graphics.setColor(colors)
+            love.graphics.draw(cursorImg, x+(self.cursorX-1)*CHIPSIZE-2, y+(self.cursorY-1)*CHIPSIZE-2)
+            love.graphics.setColor(1, 1, 1)
+        end
+    else -- bouncy stuff
+        for _, v in ipairs(self.bouncyThings) do
+            v:draw(x, y)
+        end
     end
 end
 
@@ -121,6 +169,34 @@ function Field:inMap(x, y)
     return x > 0 and x < self.w+1 and y > 0 and y < self.h+1
 end
 
+function Field:win()
+    game.over = true
+    game.won = true
+
+    self.bouncyThings = {}
+
+    -- transform chips into bouncy things
+    for cy = 1, self.h do
+        for cx = 1, self.w do
+            local chip = self.map[cx][cy]
+
+            if chip.monsterType then
+                local x, y = self:fromCoordinate(cx, cy)
+                table.insert(self.bouncyThings, BouncyThing:new(x-8, y-8, chip.monsterType, self.h*CHIPSIZE, 0, self.w*CHIPSIZE))
+            end
+        end
+    end
+end
+
+function Field:lose()
+    for _, v in pairs(self.keyRepeats) do
+        v:up()
+    end
+
+    game.over = true
+    game:flash(1, 0, 0)
+end
+
 function Field:open(x, y)
     if not game.active then
         game.active = true
@@ -137,18 +213,26 @@ function Field:open(x, y)
         if chip.monsterType then
             -- Battle!
             local monsterHP = chip.monsterType.level
+            local gotDamage = false
 
             repeat
                 monsterHP = math.max(0, monsterHP - game.level)
 
                 if monsterHP > 0 then
                     game.life = math.max(0, game.life - chip.monsterType.level)
+                    gotDamage = true
                 end
             until monsterHP == 0 or game.life == 0
 
+            if gotDamage then
+                game:shake()
+            end
+
+            self.monsterCounts[chip.monsterType.level] = self.monsterCounts[chip.monsterType.level] - 1
+
             -- check for rip
             if game.life == 0 then -- rip
-                game.over = true
+                self:lose()
 
             else -- not rip
                 game.exp = game.exp + chip.monsterType.exp
@@ -156,6 +240,18 @@ function Field:open(x, y)
                 -- check for level up
                 while game.exp >= self:getExpNextLevel(game.level) do
                     game:levelUp()
+                end
+
+                -- check for win
+                local win = true
+                for _, v in ipairs(self.monsterCounts) do
+                    if v > 0 then
+                        win = false
+                    end
+                end
+
+                if win then
+                    self:win()
                 end
             end
         end
@@ -222,12 +318,22 @@ function Field:toCoordinate(x, y)
     return cx, cy
 end
 
+function Field:fromCoordinate(cx, cy)
+    local x = (cx-.5)*CHIPSIZE
+    local y = (cy-.5)*CHIPSIZE
+
+    return x, y
+end
+
 function Field:mousepressed(x, y, button)
-    local cx, cy = self:toCoordinate(x-self.x, y-self.y)
+    local cx, cy = self:toCoordinate(x-game.fieldX, y-game.fieldY)
 
     if not self:inMap(cx, cy) then
         return
     end
+
+    self.cursorX = cx
+    self.cursorY = cy
 
     if button == 1 then
         self:attemptOpen(cx, cy)
@@ -237,8 +343,10 @@ function Field:mousepressed(x, y, button)
 end
 
 function Field:keypressed(key, scancode)
+    self.cursorVisible = true
+
     local x, y = love.mouse.getPosition()
-    local cx, cy = self:toCoordinate(x-self.x, y-self.y)
+    local cx, cy = self:toCoordinate(x-game.fieldX, y-game.fieldY)
 
     if scancode == "a" then
         if not self:inMap(cx, cy) then
@@ -254,46 +362,116 @@ function Field:keypressed(key, scancode)
 
     if scancode == "right" then
         self:right()
+        self.keyRepeats.right:down()
     elseif scancode == "left" then
         self:left()
+        self.keyRepeats.left:down()
     elseif scancode == "down" then
         self:down()
+        self.keyRepeats.down:down()
     elseif scancode == "up" then
         self:up()
+        self.keyRepeats.up:down()
     end
 
     if scancode == "space" then
         self:attemptOpen(self.cursorX, self.cursorY)
+        self.keyRepeats.mark:down()
     end
 
     if scancode == "q" then
-        self.map[self.cursorX][self.cursorY]:doCycleMark(-1)
+        self:markDown()
+        self.keyRepeats.markDown:down()
     elseif scancode == "e" then
-        self.map[self.cursorX][self.cursorY]:doCycleMark(1)
+        self:markUp()
+        self.keyRepeats.markUp:down()
+    end
+end
+
+function Field:keyreleased(key, scancode)
+    if scancode == "right" then
+        self.keyRepeats.right:up()
+    elseif scancode == "left" then
+        self.keyRepeats.left:up()
+    elseif scancode == "down" then
+        self.keyRepeats.down:up()
+    elseif scancode == "up" then
+        self.keyRepeats.up:up()
+
+    elseif scancode == "space" then
+        self.keyRepeats.mark:up()
+
+    elseif scancode == "q" then
+        self.keyRepeats.markDown:up()
+    elseif scancode == "e" then
+        self.keyRepeats.markUp:up()
     end
 end
 
 function Field:gamepadpressed(joy, button)
+    self.cursorVisible = true
+
     if button == "dpright" then
         self:right()
+        self.keyRepeats.right:down()
     elseif button == "dpleft" then
         self:left()
+        self.keyRepeats.left:down()
     elseif button == "dpdown" then
         self:down()
+        self.keyRepeats.down:down()
     elseif button == "dpup" then
         self:up()
+        self.keyRepeats.up:down()
+
+    elseif button == "l" then
+        self:markDown()
+        self.keyRepeats.markDown:down()
+    elseif button == "r" then
+        self:markUp()
+        self.keyRepeats.markUp:down()
+
     elseif button == "a" then
         self:attemptOpen(self.cursorX, self.cursorY)
-    elseif button == "l" then
-        self.map[self.cursorX][self.cursorY]:doCycleMark(-1)
-    elseif button == "r" then
-        self.map[self.cursorX][self.cursorY]:doCycleMark(1)
+        self.keyRepeats.mark:down()
     end
+end
+
+function Field:gamepadreleased(joy, button)
+    if button == "dpright" then
+        self.keyRepeats.right:up()
+    elseif button == "dpleft" then
+        self.keyRepeats.left:up()
+    elseif button == "dpdown" then
+        self.keyRepeats.down:up()
+    elseif button == "dpup" then
+        self.keyRepeats.up:up()
+
+    elseif button == "l" then
+        self.keyRepeats.markDown:up()
+    elseif button == "r" then
+        self.keyRepeats.markUp:up()
+
+    elseif button == "a" then
+        self.keyRepeats.mark:up()
+    end
+end
+
+function Field:markDown()
+    self.map[self.cursorX][self.cursorY]:doCycleMark(-1)
+end
+
+function Field:markUp()
+    self.map[self.cursorX][self.cursorY]:doCycleMark(1)
 end
 
 function Field:right()
     if self.cursorX < self.w then
         self.cursorX = self.cursorX + 1
+    end
+
+    if self.keyRepeats.mark.pressed then
+        self:attemptOpen(self.cursorX, self.cursorY)
     end
 end
 
@@ -301,17 +479,29 @@ function Field:left()
     if self.cursorX > 1 then
         self.cursorX = self.cursorX - 1
     end
+
+    if self.keyRepeats.mark.pressed then
+        self:attemptOpen(self.cursorX, self.cursorY)
+    end
 end
 
 function Field:down()
     if self.cursorY < self.h then
         self.cursorY = self.cursorY + 1
     end
+
+    if self.keyRepeats.mark.pressed then
+        self:attemptOpen(self.cursorX, self.cursorY)
+    end
 end
 
 function Field:up()
     if self.cursorY > 1 then
         self.cursorY = self.cursorY - 1
+    end
+
+    if self.keyRepeats.mark.pressed then
+        self:attemptOpen(self.cursorX, self.cursorY)
     end
 end
 

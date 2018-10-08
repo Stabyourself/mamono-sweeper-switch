@@ -1,6 +1,11 @@
-local Chip, Game, presets
+local Chip, Game
 
 function love.load()
+    math.randomseed(os.time())
+    for i = 1, 10 do
+        math.random()
+    end
+
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.graphics.setLineWidth(4)
     require "variables"
@@ -13,6 +18,8 @@ function love.load()
 
     chipClosedImg = love.graphics.newImage("img/chipClosed.png")
     chipOpenImg = love.graphics.newImage("img/chipOpen.png")
+
+    cursorImg = love.graphics.newImage("img/cursor.png")
 
     -- font = love.graphics.newImageFont("img/font.png", "ABCDEFGHIJKLMNOPQRSTUVWXYZ:-*0123456789 ", 1)
     -- love.graphics.setFont(font)
@@ -45,20 +52,8 @@ function love.draw()
     game:draw()
 end
 
-function love.gamepadpressed(joy, button)
-    if game.over then
-        game = Game:new(presets[3])
-    else
-        game:gamepadpressed(joy, button)
-    end
-end
-
 function love.mousepressed(x, y, button)
-    if game.over then
-        game = Game:new(presets[3])
-    else
-        game:mousepressed(x, y, button)
-    end
+    game:mousepressed(x, y, button)
 end
 
 function love.keypressed(key, scancode)
@@ -68,4 +63,20 @@ function love.keypressed(key, scancode)
     end
 
     game:keypressed(key, scancode)
+end
+
+function love.keyreleased(key, scancode)
+    game:keyreleased(key, scancode)
+end
+
+function love.gamepadpressed(joy, button)
+    game:gamepadpressed(joy, button)
+end
+
+function love.gamepadreleased(joy, button)
+    game:gamepadreleased(joy, button)
+end
+
+function love.touchpressed(id, x, y, dx, dy, pressure)
+    game:touchpressed(id, x, y, dx, dy, pressure)
 end
